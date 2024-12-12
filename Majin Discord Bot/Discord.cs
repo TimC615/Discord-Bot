@@ -1,5 +1,6 @@
 ﻿using Discord.WebSocket;
 using Discord;
+using Discord.Interactions;
 using System.Collections.ObjectModel;
 using TwitchLib.Api;
 using TwitchLib.Api.Helix.Models.Streams.GetStreams;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Logging.Debug;
 using System.Threading;
 using FishyFlip.Models;
 using Newtonsoft.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Majin_Discord_Bot
 {
@@ -80,11 +82,104 @@ namespace Majin_Discord_Bot
         //                                                  Discord
         //-----------------------------------------------------------------------------------------------------------------
 
+        //use majin's 3.0 avatar emotes for role reactions (aka any emote that starts with a 3)
+
+
         public Discord()
         {
             Console.WriteLine("Discord start");
             this.discord = new DiscordSocketClient();
-            this.discord.MessageReceived += MessageHandler;
+            this.discord.MessageReceived += Discord_MessageHandler;
+            this.discord.Connected += Discord_Connected;
+            this.discord.ReactionAdded += Discord_ReactionAdded;
+            this.discord.ReactionRemoved += Discord_ReactionRemoved;
+        }
+
+        private async Task Discord_ReactionRemoved(Cacheable<IUserMessage, ulong> userMessage, Cacheable<IMessageChannel, ulong> messageChannel, SocketReaction reaction)
+        {
+            try
+            {
+                IRole roleToRemove;
+
+                if (!messageChannel.HasValue)
+                    throw new Exception("messageChannel does not have value assigned");
+                if (reaction.User.Value == null)
+                    throw new Exception("reaction.User does not have value assigned");
+
+                if (userMessage.Id != 1316857672779169862 || messageChannel.Id != 1314363693773099009)
+                    return;
+
+                switch (reaction.Emote.Name)
+                {
+                    case "thecak12Wave":
+                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846547249401967).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
+
+                        Console.WriteLine($"Role {roleToRemove.Name} removed user {reaction.User.Value.Username}");
+                        break;
+                    case "thecak12Sad":
+                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846619055882293).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
+
+                        Console.WriteLine($"Role {roleToRemove.Name} removed from user {reaction.User.Value.Username}");
+                        break;
+                    case "thecak12HYPE":
+                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846643068403835).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
+
+                        Console.WriteLine($"Role {roleToRemove.Name} removed user {reaction.User.Value.Username}");
+                        break;
+                }
+            }
+            catch (Exception except)
+            {
+                Console.WriteLine($"{DateTime.Now}\tDiscord_ReactionRemoved Error: {except.Message}");
+                return;
+            }
+        }
+
+        //private async Task Discord_ReactionAdded(Cacheable<IUserMessage, ulong> cacheable1, Cacheable<IMessageChannel, ulong> cacheable2, SocketReaction reaction)
+        private async Task Discord_ReactionAdded(Cacheable<IUserMessage, ulong> userMessage, Cacheable<IMessageChannel, ulong> messageChannel, SocketReaction reaction)
+        {
+            try
+            {
+                IRole roleToAdd;
+
+                if (!messageChannel.HasValue)
+                    throw new Exception("messageChannel does not have value assigned");
+                if (reaction.User.Value == null)
+                    throw new Exception("reaction.User does not have value assigned");
+
+                if (userMessage.Id != 1316857672779169862 || messageChannel.Id != 1314363693773099009)
+                    return;
+
+                switch (reaction.Emote.Name)
+                {
+                    case "thecak12Wave":
+                        roleToAdd = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846547249401967).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).AddRoleAsync(roleToAdd);
+
+                        Console.WriteLine($"Role {roleToAdd.Name} added to user {reaction.User.Value.Username}");
+                        break;
+                    case "thecak12Sad":
+                        roleToAdd = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846619055882293).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).AddRoleAsync(roleToAdd);
+
+                        Console.WriteLine($"Role {roleToAdd.Name} added to user {reaction.User.Value.Username}");
+                        break;
+                    case "thecak12HYPE":
+                        roleToAdd = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846643068403835).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).AddRoleAsync(roleToAdd);
+
+                        Console.WriteLine($"Role {roleToAdd.Name} added to user {reaction.User.Value.Username}");
+                        break;
+                }
+            }
+            catch (Exception except)
+            {
+                Console.WriteLine($"{DateTime.Now}\tDiscord_ReactionAdded Error: {except.Message}");
+                return;
+            }
         }
 
         public async Task StartBotAsync()
@@ -100,7 +195,7 @@ namespace Majin_Discord_Bot
             //Twitch-specific Events
             twitch.OnChannelWentLive += Twitch_OnStreamWentLive;
 
-            twitch.ConnectToTwitchAPI();
+            //twitch.ConnectToTwitchAPI();
 
 
             
@@ -108,7 +203,7 @@ namespace Majin_Discord_Bot
             //Bluesky-specific Events
             bluesky.OnNewPost += Bluesky_OnNewPost;
 
-            bluesky.ConnectToBluesky();
+            //bluesky.ConnectToBluesky();
 
             
             await Task.Delay(-1);
@@ -162,7 +257,7 @@ namespace Majin_Discord_Bot
             }
         }
 
-        private async Task MessageHandler(SocketMessage message)
+        private async Task Discord_MessageHandler(SocketMessage message)
         {
             if (message.Author.IsBot) return;
 
@@ -183,6 +278,11 @@ namespace Majin_Discord_Bot
             //await discord.GetGuild(1310713824814567475).GetTextChannel(1310713827037544531).SendMessageAsync("This is a test");
 
             //discord.GetGuild().GetTextChannel().SendMessageAsync("This is a test"); ;
+        }
+
+        private async Task Discord_Connected()
+        {
+            Console.WriteLine($"{DateTime.Now} Connected to Discord");
         }
 
         private async Task SendDiscordMessageToServer(ulong guildNum, ulong channelNum, string message)
