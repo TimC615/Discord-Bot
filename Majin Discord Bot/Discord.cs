@@ -21,6 +21,10 @@ using System.Threading;
 using FishyFlip.Models;
 using Newtonsoft.Json;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using TwitterSharp.Response.RTweet;
+using Microsoft.Extensions.Configuration;
+using static System.Net.Mime.MediaTypeNames;
+using System.Configuration;
 
 namespace Majin_Discord_Bot
 {
@@ -62,11 +66,13 @@ namespace Majin_Discord_Bot
 
     internal class Discord
     {
+        private IConfiguration config;
+
         private DiscordSocketClient discord;
-        private const string token = "MTMxMDcxMjA4MjM0MTAzNjE0Mw.GWAnLb.Caoy3zCELs3uz_oi0ApGY4jWhflS8ccl2wBdtU";
         private List<SocketGuild> guilds;
         private SocketGuild[] guildsArr;
 
+        /*
         private TwitchAPI twitchAPI;
         private LiveStreamMonitorService monitor;
         private readonly string twitchClientId = "oxv4prt4vrqed9egy96up9z8oyeq46";
@@ -74,8 +80,15 @@ namespace Majin_Discord_Bot
         private readonly string twitchRedirectUri = "http://localhost:3000";
         private string twitchAccessToken;
         private string twitchRefreshToken;
+        */
+
 
         HttpServer WebServer;
+
+        Twitch twitch;
+        Twitter twitter;
+        Bluesky bluesky;
+
 
 
         //-----------------------------------------------------------------------------------------------------------------
@@ -95,48 +108,57 @@ namespace Majin_Discord_Bot
             this.discord.ReactionRemoved += Discord_ReactionRemoved;
         }
 
-        private async Task Discord_ReactionRemoved(Cacheable<IUserMessage, ulong> userMessage, Cacheable<IMessageChannel, ulong> messageChannel, SocketReaction reaction)
+        static void Main(string[] args) =>
+            new Discord().StartBotAsync().GetAwaiter().GetResult();
+
+        public async Task StartBotAsync()   //connects to discord first. all other API connections occur once discord is successfully connected to
         {
-            try
-            {
-                IRole roleToRemove;
+            var configBuilder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                //.AddUserSecrets<Discord>();
 
-                if (!messageChannel.HasValue)
-                    throw new Exception("messageChannel does not have value assigned");
-                if (reaction.User.Value == null)
-                    throw new Exception("reaction.User does not have value assigned");
+            config = configBuilder.Build();
 
-                if (userMessage.Id != 1316857672779169862 || messageChannel.Id != 1314363693773099009)
-                    return;
+            this.discord.Log += LogFuncAsync;
+            await this.discord.LoginAsync(TokenType.Bot, config.GetValue<string>("Discord:Token"));
 
-                switch (reaction.Emote.Name)
-                {
-                    case "thecak12Wave":
-                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846547249401967).Result;  //test role 1
-                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
+            await this.discord.StartAsync();
 
-                        Console.WriteLine($"Role {roleToRemove.Name} removed user {reaction.User.Value.Username}");
-                        break;
-                    case "thecak12Sad":
-                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846619055882293).Result;  //test role 1
-                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
+            await Task.Delay(-1);
 
-                        Console.WriteLine($"Role {roleToRemove.Name} removed from user {reaction.User.Value.Username}");
-                        break;
-                    case "thecak12HYPE":
-                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846643068403835).Result;  //test role 1
-                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
-
-                        Console.WriteLine($"Role {roleToRemove.Name} removed user {reaction.User.Value.Username}");
-                        break;
-                }
-            }
-            catch (Exception except)
-            {
-                Console.WriteLine($"{DateTime.Now}\tDiscord_ReactionRemoved Error: {except.Message}");
-                return;
-            }
+            async Task LogFuncAsync(LogMessage message) =>
+                Console.WriteLine(DateTime.Now + "\t" + message.ToString());
         }
+
+        private async Task Discord_Connected()
+        {
+            Console.WriteLine($"{DateTime.Now}\tConnected to Discord");
+
+            //ConnectToTwitchAPI();
+            twitch = new Twitch();
+            //Twitch-specific Events
+            twitch.OnChannelWentLive += Twitch_OnStreamWentLive;
+
+            twitch.ConnectToTwitchAPI(config);
+
+
+
+            bluesky = new Bluesky();
+            //Bluesky-specific Events
+            bluesky.OnNewPost += Bluesky_OnNewPost;
+
+            bluesky.ConnectToBluesky();
+
+
+            twitter = new Twitter();
+            //Twitte-specific Events
+            twitter.OnNewPost += Twitter_OnNewPost;
+
+            twitter.ConnectToTwitter(config);   //TwitterSharp
+        }
+
+
 
         //private async Task Discord_ReactionAdded(Cacheable<IUserMessage, ulong> cacheable1, Cacheable<IMessageChannel, ulong> cacheable2, SocketReaction reaction)
         private async Task Discord_ReactionAdded(Cacheable<IUserMessage, ulong> userMessage, Cacheable<IMessageChannel, ulong> messageChannel, SocketReaction reaction)
@@ -182,35 +204,50 @@ namespace Majin_Discord_Bot
             }
         }
 
-        public async Task StartBotAsync()
+        private async Task Discord_ReactionRemoved(Cacheable<IUserMessage, ulong> userMessage, Cacheable<IMessageChannel, ulong> messageChannel, SocketReaction reaction)
         {
+            try
+            {
+                IRole roleToRemove;
 
-            this.discord.Log += LogFuncAsync;
-            await this.discord.LoginAsync(TokenType.Bot, token);
+                if (!messageChannel.HasValue)
+                    throw new Exception("messageChannel does not have value assigned");
+                if (reaction.User.Value == null)
+                    throw new Exception("reaction.User does not have value assigned");
 
-            await this.discord.StartAsync();
+                if (userMessage.Id != 1316857672779169862 || messageChannel.Id != 1314363693773099009)
+                    return;
 
-            //ConnectToTwitchAPI();
-            Twitch twitch = new Twitch();
-            //Twitch-specific Events
-            twitch.OnChannelWentLive += Twitch_OnStreamWentLive;
+                switch (reaction.Emote.Name)
+                {
+                    case "thecak12Wave":
+                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846547249401967).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
 
-            //twitch.ConnectToTwitchAPI();
+                        Console.WriteLine($"Role {roleToRemove.Name} removed user {reaction.User.Value.Username}");
+                        break;
+                    case "thecak12Sad":
+                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846619055882293).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
 
+                        Console.WriteLine($"Role {roleToRemove.Name} removed from user {reaction.User.Value.Username}");
+                        break;
+                    case "thecak12HYPE":
+                        roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846643068403835).Result;  //test role 1
+                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
 
-            
-            Bluesky bluesky = new Bluesky();
-            //Bluesky-specific Events
-            bluesky.OnNewPost += Bluesky_OnNewPost;
-
-            //bluesky.ConnectToBluesky();
-
-            
-            await Task.Delay(-1);
-
-            async Task LogFuncAsync(LogMessage message) =>
-                Console.WriteLine(DateTime.Now + "\t" + message.ToString());
+                        Console.WriteLine($"Role {roleToRemove.Name} removed user {reaction.User.Value.Username}");
+                        break;
+                }
+            }
+            catch (Exception except)
+            {
+                Console.WriteLine($"{DateTime.Now}\tDiscord_ReactionRemoved Error: {except.Message}");
+                return;
+            }
         }
+
+
 
         private void Twitch_OnStreamWentLive(object? sender, OnStreamOnlineArgs e)
         {
@@ -219,12 +256,12 @@ namespace Majin_Discord_Bot
 
             //SendDiscordMessageToServer(1310713824814567475, 1310713827037544531, wentLiveMessage);    //general text channel
             SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, wentLiveMessage);      //spam text channel
-            
+
         }
 
         private async void Bluesky_OnNewPost(object? sender, ATWebSocketRecord e)
         {
-            Console.WriteLine("Discord: Detected new Bluesky post");
+            //Console.WriteLine("Discord: Detected new Bluesky post");
             string handle = "";
 
             HttpClient BlueskyDIDToHandleConnection = new HttpClient();
@@ -262,7 +299,7 @@ namespace Majin_Discord_Bot
             if (message.Author.IsBot) return;
 
 
-            //await ReplyAsync(message, "C# response works!");
+            await ReplyAsync(message, $"{DateTime.Now} C# response works!");
 
             guildsArr = discord.Guilds.ToArray();
 
@@ -280,9 +317,11 @@ namespace Majin_Discord_Bot
             //discord.GetGuild().GetTextChannel().SendMessageAsync("This is a test"); ;
         }
 
-        private async Task Discord_Connected()
+        private void Twitter_OnNewPost(object? sender, TwitterNewPostResponse e)
         {
-            Console.WriteLine($"{DateTime.Now} Connected to Discord");
+            string postUrl = $"https://x.com/{e.Username}/status/{e.PostId}";
+            string newPostMessage = $"Hey there's a new Twitter post!\n{postUrl}";
+            SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, newPostMessage);
         }
 
         private async Task SendDiscordMessageToServer(ulong guildNum, ulong channelNum, string message)
@@ -293,9 +332,5 @@ namespace Majin_Discord_Bot
 
         private async Task ReplyAsync(SocketMessage message, string response) =>
             await message.Channel.SendMessageAsync(response);
-
-
-        static void Main(string[] args) =>
-            new Discord().StartBotAsync().GetAwaiter().GetResult();
     }
 }

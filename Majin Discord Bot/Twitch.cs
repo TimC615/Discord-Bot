@@ -13,6 +13,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using TwitchLib.Api.Services.Events.LiveStreamMonitor;
 using TwitchLib.Api.Services.Events;
 using TwitchLib.Api.Helix.Models.Streams.GetStreams;
+using Microsoft.Extensions.Configuration;
 
 namespace Majin_Discord_Bot
 {
@@ -20,12 +21,11 @@ namespace Majin_Discord_Bot
     {
         private TwitchAPI twitchAPI;
         private LiveStreamMonitorService monitor;
-        private readonly string twitchClientId = "oxv4prt4vrqed9egy96up9z8oyeq46";
-        private readonly string twitchClientSecret = "2adfs7nowo2dvemnmq0zq0egi0xhe8";
-        private readonly string twitchRedirectUri = "http://localhost:3000";
+        private string twitchRedirectUri = "http://localhost:3000";
         private string twitchAccessToken;
         private string twitchRefreshToken;
         HttpServer WebServer;
+        private IConfiguration config;
 
         public event EventHandler<OnStreamOnlineArgs> OnChannelWentLive;
 
@@ -52,13 +52,15 @@ namespace Majin_Discord_Bot
         }
         */
 
-        public void ConnectToTwitchAPI()
+        public void ConnectToTwitchAPI(IConfiguration config)
         {
+            this.config = config;
+
             InitializeTwitchWebServer();
 
             twitchAPI = new TwitchAPI();
-            twitchAPI.Settings.ClientId = twitchClientId;
-            twitchAPI.Settings.Secret = twitchClientSecret;
+            twitchAPI.Settings.ClientId = config.GetValue<string>("Twitch:ClientId");
+            twitchAPI.Settings.Secret = config.GetValue<string>("Twitch:ClientSecret");
 
             var authUrl = "https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=" +
                 twitchAPI.Settings.ClientId + "&redirect_uri=" + twitchRedirectUri;
@@ -127,8 +129,8 @@ namespace Majin_Discord_Bot
             HttpClient client = new HttpClient();
             var values = new Dictionary<string, string>
             {
-                { "client_id", twitchClientId },
-                { "client_secret", twitchClientSecret },
+                { "client_id", config.GetValue<string>("Twitch:ClientId") },
+                { "client_secret", config.GetValue<string>("Twitch:ClientSecret") },
                 { "code", code },
                 { "grant_type", "authorization_code" },
                 { "redirect_uri", twitchRedirectUri }
@@ -154,7 +156,7 @@ namespace Majin_Discord_Bot
             monitor.OnServiceStarted += Monitor_OnServiceStarted;
             monitor.OnStreamOnline += Monitor_OnStreamOnline;
             monitor.OnStreamOffline += Monitor_OnStreamOffline;
-            monitor.OnStreamUpdate += Monitor_OnStreamUpdate;
+            //monitor.OnStreamUpdate += Monitor_OnStreamUpdate;
             monitor.OnServiceStarted += Monitor_OnServiceStarted;
 
             monitor.OnServiceStarted += Monitor_OnServiceStarted;
@@ -195,7 +197,7 @@ namespace Majin_Discord_Bot
 
         private void Monitor_OnStreamUpdate(object sender, OnStreamUpdateArgs e)
         {
-            //Console.WriteLine(DateTime.Now + "\tStream Update: " + e.Stream.Title);
+            Console.WriteLine(DateTime.Now + "\tStream Update: " + e.Stream.Title);
         }
 
         private void Monitor_OnStreamOffline(object sender, OnStreamOfflineArgs e)
