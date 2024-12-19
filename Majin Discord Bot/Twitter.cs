@@ -140,7 +140,7 @@ namespace Majin_Discord_Bot
                     Console.WriteLine($"Tweet {x + 1}: {tweet.Text}");
                     OnNewPost?.Invoke(this, new TwitterNewPostResponse { Username = userIdList[0].Username, PostId = tweet.Id });
 
-                    if (x == tweetsResponse.Length - 1)
+                    if (x == 0)
                     {
                         WriteMostRecentTweetIdToFile(filePath, fileName, tweet.Id);
                     }
