@@ -75,7 +75,6 @@ namespace Majin_Discord_Bot
 
         private void OnTweetTimerElapsed(object? sender, ElapsedEventArgs e)
         {
-            
             //Console.WriteLine($"CheckNewTweets Timer went off at {e.SignalTime}");
             GetNewTweets();
         }
@@ -90,7 +89,7 @@ namespace Majin_Discord_Bot
             //handles if provided file path is accessable or not
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"There was an issue with the selected file. Please make sure file path is set to a readable text file.");
+                Console.WriteLine($"{DateTime.Now}\tThere was an issue with the selected file. Please make sure file path is set to a readable text file.");
                 return;
             }
             else
@@ -103,21 +102,19 @@ namespace Majin_Discord_Bot
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Read File Error: {e.Message}");
+                    Console.WriteLine($"{DateTime.Now}\tRead File Error: {e.Message}");
                     return;
                 }
 
                 //handles when user tries to use a file with nothing inside it
                 if (fileInput.Length == 0)
                 {
-                    Console.WriteLine($"File contains no tweet id");
+                    Console.WriteLine($"{DateTime.Now}\tFile contains no tweet id");
                     return;
                 }
                 else
                 {
                     mostRecentTweetId = fileInput[0];
-
-                    Console.WriteLine($"TEST: {mostRecentTweetId}");
                 }
             }
 
@@ -136,8 +133,6 @@ namespace Majin_Discord_Bot
                 for (int x = tweetsResponse.Length - 1; x >= 0; x--)
                 {
                     var tweet = tweetsResponse[x];
-
-                    Console.WriteLine($"Tweet {x + 1}: {tweet.Text}");
                     OnNewPost?.Invoke(this, new TwitterNewPostResponse { Username = userIdList[0].Username, PostId = tweet.Id });
 
                     if (x == 0)
@@ -160,7 +155,7 @@ namespace Majin_Discord_Bot
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Write to {fileName} error: {e.Message}");
+                Console.WriteLine($"{DateTime.Now}\tWrite to {fileName} error: {e.Message}");
             }
         }
     }

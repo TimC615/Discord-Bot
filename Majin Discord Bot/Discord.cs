@@ -115,8 +115,8 @@ namespace Majin_Discord_Bot
         {
             var configBuilder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-                //.AddUserSecrets<Discord>();
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddUserSecrets<Discord>();
 
             config = configBuilder.Build();
 
@@ -140,7 +140,7 @@ namespace Majin_Discord_Bot
             //Twitch-specific Events
             twitch.OnChannelWentLive += Twitch_OnStreamWentLive;
 
-            twitch.ConnectToTwitchAPI(config);
+            //twitch.ConnectToTwitchAPI(config);
 
 
 
@@ -148,7 +148,7 @@ namespace Majin_Discord_Bot
             //Bluesky-specific Events
             bluesky.OnNewPost += Bluesky_OnNewPost;
 
-            bluesky.ConnectToBluesky();
+            //bluesky.ConnectToBluesky();
 
 
             twitter = new Twitter();
