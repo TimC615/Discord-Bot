@@ -49,7 +49,7 @@ namespace Majin_Discord_Bot
 
         List<TwitterUserSearchInfo> userIdList = new List<TwitterUserSearchInfo>
             {
-                new TwitterUserSearchInfo{ Username = "CBCNews", UserId = "6433472"}
+                new TwitterUserSearchInfo{ Username = "MajinOrca", UserId = "1370788088067203073"}
             };
 
         static int timerInterval = 12 * (60 * 60 * 1000);  //converts 12 hours to milliseconds
@@ -67,7 +67,7 @@ namespace Majin_Discord_Bot
             checkNewTweetsTimer.Elapsed += OnTweetTimerElapsed;
             checkNewTweetsTimer.AutoReset = true;
 
-            Console.WriteLine($"First CheckNewTweets Timer went off at {DateTime.Now}");
+            Console.WriteLine($"{DateTime.Now}\tFirst CheckNewTweets Timer went off");
             GetNewTweets();   //put call to GetNewTweets() so bot doesn't need to wait 12 hours from startup to do a first check
 
             checkNewTweetsTimer.Start();
@@ -118,27 +118,32 @@ namespace Majin_Discord_Bot
                 }
             }
 
-            //string mostRecentTweetIdV2 = "1851644787889189189"; //https://x.com/MajinOrca/status/1851644787889189189
-
             try
             {
+                TweetSearchOptions searchOptions = new TweetSearchOptions();
+
                 var tweetsResponse = await twitterSharp.GetTweetsFromUserIdAsync(userIdList[0].UserId, new TweetSearchOptions
                 {
                     SinceId = mostRecentTweetId,
                     Limit = 20,
-                    TweetOptions = new[] { TweetOption.Source, TweetOption.Public_Metrics }
+                    TweetOptions = new[] { 
+                        TweetOption.Source, 
+                        TweetOption.Public_Metrics, 
+                        TweetOption.In_Reply_To_User_Id, 
+                        TweetOption.Referenced_Tweets, 
+                        TweetOption.Reply_Settings }
                 });
 
                 //iterate through tweets in reverse to handle tweets from oldest to newest
                 for (int x = tweetsResponse.Length - 1; x >= 0; x--)
                 {
                     var tweet = tweetsResponse[x];
-                    OnNewPost?.Invoke(this, new TwitterNewPostResponse { Username = userIdList[0].Username, PostId = tweet.Id });
 
-                    if (x == 0)
-                    {
-                        WriteMostRecentTweetIdToFile(filePath, fileName, tweet.Id);
-                    }
+                    //filters out comments and retweets since GetTweetsFromUserIdAsync() apparently doesn't already do it
+                    if (tweet.InReplyToUserId == null && tweet.ReferencedTweets == null)
+                        OnNewPost?.Invoke(this, new TwitterNewPostResponse { Username = userIdList[0].Username, PostId = tweet.Id });
+
+                    WriteMostRecentTweetIdToFile(filePath, fileName, tweet.Id);
                 }
             }
             catch (Exception e)

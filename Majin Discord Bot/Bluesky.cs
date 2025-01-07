@@ -49,10 +49,6 @@ namespace Majin_Discord_Bot
 
         public async void ConnectToBluesky()
         {
-            Console.WriteLine("Hello, ATProtocol Firehose!");
-
-
-
             var debugLog = new DebugLoggerProvider();
 
             //WebProtocol looks to handle connection data
@@ -60,9 +56,6 @@ namespace Majin_Discord_Bot
             var atWebProtocolBuilder = new ATWebSocketProtocolBuilder()
                 .WithLogger(debugLog.CreateLogger("ATWebSocketProtocolBuilder Feed"));
             var atWebProtocol = atWebProtocolBuilder.Build();
-
-            Console.WriteLine($"{atWebProtocol.ToString()}");
-
 
             //Protocol looks to handle messages from firehose (or other soruces)
             //atProtocolBuilder handles actual actions from firehose (messages, likes, reposts, etc)
@@ -116,11 +109,7 @@ namespace Majin_Discord_Bot
 
             List<string> wantedHandles = new List<string>();
             
-            wantedHandles.Add("autsport-com.bsky.social");
-            wantedHandles.Add("bbcnews-world-rss.bsky.social");
-            wantedHandles.Add("arstechnica.com");
             wantedHandles.Add("majinorca.bsky.social");
-            wantedHandles.Add("theguardian.com");
             
 
             List<string> wantedDids = new List<string>();
@@ -144,18 +133,18 @@ namespace Majin_Discord_Bot
                     if (result == null)
                     {
                         //wantedDids.Add("");
-                        Console.WriteLine($"Couldn't find did for handle: {wantedHandles[x]}");
+                        Console.WriteLine($"{DateTime.Now}\tCouldn't find did for handle: {wantedHandles[x]}");
                     }
                     else
                     {
                         wantedDids.Add(result.did);
-                        Console.WriteLine($"Handle:{wantedHandles[x]}\tDid: {wantedDids.Last()}");
+                        //Console.WriteLine($"Handle:{wantedHandles[x]}\tDid: {wantedDids.Last()}");
                     }
                 }
                 else
                 {
                     //wantedDids.Add("");
-                    Console.WriteLine($"Response code not successful for handle {wantedHandles[x]}\t Reason: {response.StatusCode}");
+                    Console.WriteLine($"{DateTime.Now}\tResponse code not successful for handle {wantedHandles[x]}\t Reason: {response.StatusCode}");
                 }
             }
 
@@ -173,12 +162,12 @@ namespace Majin_Discord_Bot
 
         public async Task JetStream_ConnectionUpdated(SubscriptionConnectionStatusEventArgs args)
         {
-            Console.WriteLine($"JetStream Connection Updated\tState: {args.State}");
+            Console.WriteLine($"{DateTime.Now}\tJetStream Connection Updated\tState: {args.State}");
         }
 
         public async Task JetStream_RawMessageReceived(JetStreamRawMessageEventArgs args)
         {
-            Console.WriteLine($"JetStream Raw Message Received\tMessage JSON: {args.MessageJson}\n\n");
+            Console.WriteLine($"{DateTime.Now}\tJetStream Raw Message Received\tMessage JSON: {args.MessageJson}\n\n");
         }
 
         public async Task JetStream_RecordReceived(ATWebSocketRecord record)

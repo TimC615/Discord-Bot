@@ -14,6 +14,7 @@ using TwitchLib.Api.Services.Events.LiveStreamMonitor;
 using TwitchLib.Api.Services.Events;
 using TwitchLib.Api.Helix.Models.Streams.GetStreams;
 using Microsoft.Extensions.Configuration;
+using FishyFlip;
 
 namespace Majin_Discord_Bot
 {
@@ -158,6 +159,7 @@ namespace Majin_Discord_Bot
             monitor.OnStreamOffline += Monitor_OnStreamOffline;
             //monitor.OnStreamUpdate += Monitor_OnStreamUpdate;
             monitor.OnServiceStarted += Monitor_OnServiceStarted;
+            monitor.OnServiceStopped += Monitor_OnServiceStopped;
 
             monitor.OnServiceStarted += Monitor_OnServiceStarted;
             monitor.OnChannelsSet += Monitor_OnChannelsSet;
@@ -165,8 +167,7 @@ namespace Majin_Discord_Bot
 
 
             List<string> channelLoginsToWatch = new List<string>();
-            channelLoginsToWatch.Add("Yogscast");
-            channelLoginsToWatch.Add("DashDucks");
+            channelLoginsToWatch.Add("MajinOrca");
 
             List<string> channelIdsToWatch = new List<string>();
             foreach (var user in twitchAPI.Helix.Users.GetUsersAsync(logins: channelLoginsToWatch).Result.Users)
@@ -179,43 +180,50 @@ namespace Majin_Discord_Bot
 
             monitor.Start(); //Keep at the end!
 
-            await Task.Delay(-1);
+            //await Task.Delay(-1);
+            var key = Console.ReadKey();
+            monitor.Stop();
         }
 
         private void Monitor_OnServiceOnline(object sender, OnServiceStartedArgs e)
         {
-            Console.WriteLine(DateTime.Now + "\tMonitor Service Started");
+            Console.WriteLine(DateTime.Now + "\tTwitch Monitor Service Online");
 
         }
 
         private void Monitor_OnStreamOnline(object sender, OnStreamOnlineArgs e)
         {
-            Console.WriteLine(DateTime.Now + "\tStream Started: " + e.Stream.Title);
+            Console.WriteLine(DateTime.Now + "\tTwitch Stream Started: " + e.Stream.Title);
             OnChannelWentLive?.Invoke(this, e);
             //await discord.GetGuild(1310713824814567475).GetTextChannel(1310713827037544531).SendMessageAsync($"{e.Stream.UserName} just went live playing {e.Stream.GameName}.\nhttps://www.twitch.tv/{e.Stream.UserLogin}");
         }
 
         private void Monitor_OnStreamUpdate(object sender, OnStreamUpdateArgs e)
         {
-            Console.WriteLine(DateTime.Now + "\tStream Update: " + e.Stream.Title);
+            Console.WriteLine(DateTime.Now + "\tTwitch Stream Update: " + e.Stream.Title);
         }
 
         private void Monitor_OnStreamOffline(object sender, OnStreamOfflineArgs e)
         {
-            Console.WriteLine(DateTime.Now + "\tStream Offline: " + e.Stream.UserName);
+            Console.WriteLine(DateTime.Now + "\tTwitch Stream Offline: " + e.Stream.UserName);
         }
 
         private void Monitor_OnChannelsSet(object sender, OnChannelsSetArgs e)
         {
             foreach (var setChannel in e.Channels)
             {
-                Console.WriteLine(DateTime.Now + "\tChannel monitoring set for " + setChannel.ToString());
+                Console.WriteLine(DateTime.Now + "\tTwitch Channel monitoring set for " + setChannel.ToString());
             }
         }
 
         private void Monitor_OnServiceStarted(object sender, OnServiceStartedArgs e)
         {
-            Console.WriteLine(DateTime.Now + "\tMonitor Started");
+            Console.WriteLine(DateTime.Now + "\tTwitch Monitor Started");
+        }
+
+        private void Monitor_OnServiceStopped(object sender, OnServiceStoppedArgs e)
+        {
+            Console.WriteLine(DateTime.Now + "\tTwitch Monitor Stopped");
         }
     }
 }

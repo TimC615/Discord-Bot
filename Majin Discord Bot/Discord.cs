@@ -106,14 +106,11 @@ namespace Majin_Discord_Bot
         //                                                  Discord
         //-----------------------------------------------------------------------------------------------------------------
 
-        //use majin's 3.0 avatar emotes for role reactions (aka any emote that starts with a 3)
-
-
         public Discord()
         {
             Console.WriteLine($"{DateTime.Now}\t Connecting to Discord...");
             this.discord = new DiscordSocketClient();
-            this.discord.MessageReceived += Discord_MessageHandler;
+            //this.discord.MessageReceived += Discord_MessageHandler;   //use if bot needs to respond to user messages
             this.discord.Connected += Discord_Connected;
             this.discord.ReactionAdded += Discord_ReactionAdded;
             this.discord.ReactionRemoved += Discord_ReactionRemoved;
@@ -151,7 +148,7 @@ namespace Majin_Discord_Bot
             //Twitch-specific Events
             twitch.OnChannelWentLive += Twitch_OnStreamWentLive;
 
-            //twitch.ConnectToTwitchAPI(config);
+            twitch.ConnectToTwitchAPI(config);
 
 
 
@@ -159,19 +156,21 @@ namespace Majin_Discord_Bot
             //Bluesky-specific Events
             bluesky.OnNewPost += Bluesky_OnNewPost;
 
-            //bluesky.ConnectToBluesky();
+            bluesky.ConnectToBluesky();
 
 
             twitter = new Twitter();
             //Twitte-specific Events
             twitter.OnNewPost += Twitter_OnNewPost;
 
-            //twitter.ConnectToTwitter(config);   //TwitterSharp
+            twitter.ConnectToTwitter(config);   //TwitterSharp
         }
 
 
+        //--------------------------------------------------------------------------------------------------------------
+        //                                          Discord Role Manager
+        //--------------------------------------------------------------------------------------------------------------
 
-        //private async Task Discord_ReactionAdded(Cacheable<IUserMessage, ulong> cacheable1, Cacheable<IMessageChannel, ulong> cacheable2, SocketReaction reaction)
         private async Task Discord_ReactionAdded(Cacheable<IUserMessage, ulong> userMessage, Cacheable<IMessageChannel, ulong> messageChannel, SocketReaction reaction)
         {
             try
@@ -190,6 +189,8 @@ namespace Majin_Discord_Bot
                 if (userMessage.Id != roleHandlerMessageId)
                     return;
 
+                //to make scalable, put in an array into appsettings.json containing <string, ulong> pairs of emote name and associated role id
+                //this implementation only works with emotes (emoticons do not return an IEmote object)
                 switch (reaction.Emote.Name)
                 {
                     case "thecak12Wave":
@@ -278,10 +279,6 @@ namespace Majin_Discord_Bot
         {
             string wentLiveMessage = $"{e.Stream.UserName} just went live playing {e.Stream.GameName}\nhttps://www.twitch.tv/{e.Stream.UserLogin}";
             Console.WriteLine($"{DateTime.Now}\t{wentLiveMessage}");
-
-            //SendDiscordMessageToServer(1310713824814567475, 1310713827037544531, wentLiveMessage);    //general text channel
-            //SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, wentLiveMessage);      //spam text channel
-
 
             DiscordNotificationInformation notificationInfo = GetDiscordNotificationInfo();
             SendDiscordMessageToServer(notificationInfo.guildNum, notificationInfo.channelNum, wentLiveMessage);
