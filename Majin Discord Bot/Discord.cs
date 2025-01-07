@@ -63,6 +63,17 @@ namespace Majin_Discord_Bot
         public string PublicKeyMultibase { get; set; }
     }
 
+    public class DiscordNotificationInformation
+    {
+        public ulong guildNum { get; }
+        public ulong channelNum { get; }
+
+        public DiscordNotificationInformation(ulong guildNum, ulong channelNum)
+        {
+            this.guildNum = guildNum;
+            this.channelNum = channelNum;
+        }
+    }
 
     internal class Discord
     {
@@ -75,8 +86,8 @@ namespace Majin_Discord_Bot
         /*
         private TwitchAPI twitchAPI;
         private LiveStreamMonitorService monitor;
-        private readonly string twitchClientId = "oxv4prt4vrqed9egy96up9z8oyeq46";
-        private readonly string twitchClientSecret = "2adfs7nowo2dvemnmq0zq0egi0xhe8";
+        private readonly string twitchClientId = "";
+        private readonly string twitchClientSecret = "";
         private readonly string twitchRedirectUri = "http://localhost:3000";
         private string twitchAccessToken;
         private string twitchRefreshToken;
@@ -100,7 +111,7 @@ namespace Majin_Discord_Bot
 
         public Discord()
         {
-            Console.WriteLine("Discord start");
+            Console.WriteLine($"{DateTime.Now}\t Connecting to Discord...");
             this.discord = new DiscordSocketClient();
             this.discord.MessageReceived += Discord_MessageHandler;
             this.discord.Connected += Discord_Connected;
@@ -155,7 +166,7 @@ namespace Majin_Discord_Bot
             //Twitte-specific Events
             twitter.OnNewPost += Twitter_OnNewPost;
 
-            twitter.ConnectToTwitter(config);   //TwitterSharp
+            //twitter.ConnectToTwitter(config);   //TwitterSharp
         }
 
 
@@ -172,7 +183,11 @@ namespace Majin_Discord_Bot
                 if (reaction.User.Value == null)
                     throw new Exception("reaction.User does not have value assigned");
 
-                if (userMessage.Id != 1316857672779169862 || messageChannel.Id != 1314363693773099009)
+                ulong roleHandlerMessageId = GetRoleHandlerMessageId();
+                if (roleHandlerMessageId == 0)
+                    throw new Exception("issue when reading from stored roleHandlerMessageId");
+
+                if (userMessage.Id != roleHandlerMessageId)
                     return;
 
                 switch (reaction.Emote.Name)
@@ -181,19 +196,19 @@ namespace Majin_Discord_Bot
                         roleToAdd = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846547249401967).Result;  //test role 1
                         await (reaction.User.Value as SocketGuildUser).AddRoleAsync(roleToAdd);
 
-                        Console.WriteLine($"Role {roleToAdd.Name} added to user {reaction.User.Value.Username}");
+                        Console.WriteLine($"{DateTime.Now}\tRole {roleToAdd.Name} added to user {reaction.User.Value.Username}");
                         break;
                     case "thecak12Sad":
                         roleToAdd = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846619055882293).Result;  //test role 1
                         await (reaction.User.Value as SocketGuildUser).AddRoleAsync(roleToAdd);
 
-                        Console.WriteLine($"Role {roleToAdd.Name} added to user {reaction.User.Value.Username}");
+                        Console.WriteLine($"{DateTime.Now}\tRole {roleToAdd.Name} added to user {reaction.User.Value.Username}");
                         break;
                     case "thecak12HYPE":
                         roleToAdd = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846643068403835).Result;  //test role 1
                         await (reaction.User.Value as SocketGuildUser).AddRoleAsync(roleToAdd);
 
-                        Console.WriteLine($"Role {roleToAdd.Name} added to user {reaction.User.Value.Username}");
+                        Console.WriteLine($"{DateTime.Now}\tRole {roleToAdd.Name} added to user {reaction.User.Value.Username}");
                         break;
                 }
             }
@@ -215,7 +230,14 @@ namespace Majin_Discord_Bot
                 if (reaction.User.Value == null)
                     throw new Exception("reaction.User does not have value assigned");
 
-                if (userMessage.Id != 1316857672779169862 || messageChannel.Id != 1314363693773099009)
+                ulong roleHandlerMessageId = GetRoleHandlerMessageId();
+                if (roleHandlerMessageId == 0)
+                    throw new Exception("issue when reading from stored roleHandlerMessageId");
+
+                if (userMessage.Id != roleHandlerMessageId)
+                    return;
+
+                if (userMessage.Id != roleHandlerMessageId)
                     return;
 
                 switch (reaction.Emote.Name)
@@ -224,19 +246,19 @@ namespace Majin_Discord_Bot
                         roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846547249401967).Result;  //test role 1
                         await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
 
-                        Console.WriteLine($"Role {roleToRemove.Name} removed user {reaction.User.Value.Username}");
+                        Console.WriteLine($"{DateTime.Now}\tRole {roleToRemove.Name} removed user {reaction.User.Value.Username}");
                         break;
                     case "thecak12Sad":
                         roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846619055882293).Result;  //test role 1
                         await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
 
-                        Console.WriteLine($"Role {roleToRemove.Name} removed from user {reaction.User.Value.Username}");
+                        Console.WriteLine($"{DateTime.Now}\tRole {roleToRemove.Name} removed from user {reaction.User.Value.Username}");
                         break;
                     case "thecak12HYPE":
                         roleToRemove = (messageChannel.Value as SocketGuildChannel).Guild.GetRoleAsync(1316846643068403835).Result;  //test role 1
                         await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToRemove);
 
-                        Console.WriteLine($"Role {roleToRemove.Name} removed user {reaction.User.Value.Username}");
+                        Console.WriteLine($"{DateTime.Now}\tRole {roleToRemove.Name} removed user {reaction.User.Value.Username}");
                         break;
                 }
             }
@@ -248,14 +270,21 @@ namespace Majin_Discord_Bot
         }
 
 
+        //--------------------------------------------------------------------------------------------------------------
+        //                                          New Socials Activity
+        //--------------------------------------------------------------------------------------------------------------
 
         private void Twitch_OnStreamWentLive(object? sender, OnStreamOnlineArgs e)
         {
             string wentLiveMessage = $"{e.Stream.UserName} just went live playing {e.Stream.GameName}\nhttps://www.twitch.tv/{e.Stream.UserLogin}";
-            Console.WriteLine("Event Handler: " + wentLiveMessage);
+            Console.WriteLine($"{DateTime.Now}\t{wentLiveMessage}");
 
             //SendDiscordMessageToServer(1310713824814567475, 1310713827037544531, wentLiveMessage);    //general text channel
-            SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, wentLiveMessage);      //spam text channel
+            //SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, wentLiveMessage);      //spam text channel
+
+
+            DiscordNotificationInformation notificationInfo = GetDiscordNotificationInfo();
+            SendDiscordMessageToServer(notificationInfo.guildNum, notificationInfo.channelNum, wentLiveMessage);
 
         }
 
@@ -275,59 +304,107 @@ namespace Majin_Discord_Bot
 
                 if (result == null)
                 {
-                    Console.WriteLine($"Couldn't find handle for did: {e.Did}");
+                    Console.WriteLine($"{DateTime.Now}\tCouldn't find handle for did: {e.Did}");
                 }
                 else
                 {
                     handle = result.AlsoKnownAs.ToArray()[0].Split('/')[2];
-                    Console.WriteLine($"IT WORKED\t\tDid: {e.Did}\tHandle: {handle}");
 
-                    string wentLiveMessage = $"Hey there's a new bluesky post!\nhttps://bsky.app/profile/{handle}/post/{e.Commit.RKey}";
-                    Console.WriteLine("Event Handler: " + wentLiveMessage);
+                    string newBlueskyPost = $"Hey there's a new bluesky post!\nhttps://bsky.app/profile/{handle}/post/{e.Commit.RKey}";
+                    Console.WriteLine($"{DateTime.Now}\t{newBlueskyPost}");
 
-                    SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, wentLiveMessage);
+                    //SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, newBlueskyPost);
+
+                    DiscordNotificationInformation notificationInfo = GetDiscordNotificationInfo();
+                    SendDiscordMessageToServer(notificationInfo.guildNum, notificationInfo.channelNum, newBlueskyPost);
                 }
             }
             else
             {
-                Console.WriteLine($"Response code not successful for getting handle from: {e.Did}\t Reason: {response.StatusCode}");
+                Console.WriteLine($"{DateTime.Now}\tResponse code not successful for getting handle from: {e.Did}\t Reason: {response.StatusCode}");
             }
-        }
-
-        private async Task Discord_MessageHandler(SocketMessage message)
-        {
-            if (message.Author.IsBot) return;
-
-
-            await ReplyAsync(message, $"{DateTime.Now} C# response works!");
-
-            guildsArr = discord.Guilds.ToArray();
-
-            foreach (SocketGuild guild in guildsArr)
-            {
-                Console.WriteLine(DateTime.Now + "\tGuild: {0}\tID: {1}", guild.Name, guild.Id);
-            }
-
-            //CheckIfTwitchIsLive();
-
-            SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, "This is a test");
-
-            //await discord.GetGuild(1310713824814567475).GetTextChannel(1310713827037544531).SendMessageAsync("This is a test");
-
-            //discord.GetGuild().GetTextChannel().SendMessageAsync("This is a test"); ;
         }
 
         private void Twitter_OnNewPost(object? sender, TwitterNewPostResponse e)
         {
             string postUrl = $"https://x.com/{e.Username}/status/{e.PostId}";
             string newPostMessage = $"Hey there's a new Twitter post!\n{postUrl}";
-            SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, newPostMessage);
+            //SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, newPostMessage);
+
+            DiscordNotificationInformation notificationInfo = GetDiscordNotificationInfo();
+            SendDiscordMessageToServer(notificationInfo.guildNum, notificationInfo.channelNum, newPostMessage);
+        }
+
+
+        //--------------------------------------------------------------------------------------------------------------
+        //                                          Utility Methods
+        //--------------------------------------------------------------------------------------------------------------
+
+
+        private async Task Discord_MessageHandler(SocketMessage message)
+        {
+            if (message.Author.IsBot) return;
+
+            if(message.Author.Id == 316081147463598081) //triggers for user: "TheCakeIsAPie"
+            {
+                await ReplyAsync(message, $"{DateTime.Now} C# response works!");
+
+                guildsArr = discord.Guilds.ToArray();
+
+                foreach (SocketGuild guild in guildsArr)
+                {
+                    Console.WriteLine(DateTime.Now + "\tGuild: {0}\tID: {1}", guild.Name, guild.Id);
+                }
+            }
+            //CheckIfTwitchIsLive();
+
+            //SendDiscordMessageToServer(1310713824814567475, 1314363693773099009, "This is a test");
+
+            //await discord.GetGuild(1310713824814567475).GetTextChannel(1310713827037544531).SendMessageAsync("This is a test");
+
+            //discord.GetGuild().GetTextChannel().SendMessageAsync("This is a test"); ;
         }
 
         private async Task SendDiscordMessageToServer(ulong guildNum, ulong channelNum, string message)
         {
             await discord.GetGuild(guildNum).GetTextChannel(channelNum).SendMessageAsync(message);
-            
+        }
+
+        private DiscordNotificationInformation GetDiscordNotificationInfo()
+        {
+            ulong serverId;
+            ulong channelId;
+
+            try
+            {
+                serverId = ulong.Parse(config.GetValue<string>("Discord:NotificationServerID"));
+                channelId = ulong.Parse(config.GetValue<string>("Discord:NotificationChannelID"));
+            }
+            catch (Exception except)
+            {
+                Console.WriteLine($"{DateTime.Now}\tError parsing Discord notification info to ulong: {except.Message}");
+                return null;
+            }
+
+
+            DiscordNotificationInformation info = new DiscordNotificationInformation(serverId, channelId);
+            return info;
+        }
+
+        private ulong GetRoleHandlerMessageId()
+        {
+            ulong roleHandlerMessageId;
+            try
+            {
+                roleHandlerMessageId = ulong.Parse(config.GetValue<string>("Discord:RoleHandlerMessageId"));
+            }
+            catch (Exception except)
+            {
+                Console.WriteLine($"{DateTime.Now}\tError converting stored role handler message Id to ulong: {except.Message}");
+                return 0;
+            }
+
+            return roleHandlerMessageId;
         }
 
         private async Task ReplyAsync(SocketMessage message, string response) =>

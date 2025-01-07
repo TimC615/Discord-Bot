@@ -81,7 +81,7 @@ namespace Majin_Discord_Bot
 
         private async void GetNewTweets()
         {
-            string filePath = config.GetValue<string>("Twitter:TweetIdFilePath");
+            string filePath = @"MostRecentTweetId.txt";
             string fileName;
             string[] fileInput;
             string mostRecentTweetId;
@@ -89,7 +89,7 @@ namespace Majin_Discord_Bot
             //handles if provided file path is accessable or not
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"{DateTime.Now}\tThere was an issue with the selected file. Please make sure file path is set to a readable text file.");
+                Console.WriteLine($"{DateTime.Now}\tThere was an issue finding the tweet Id file. Please make sure there is a .txt file labelled \"MostRecentTweetId.txt\" in the application files.");
                 return;
             }
             else
